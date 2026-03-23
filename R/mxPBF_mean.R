@@ -1,8 +1,8 @@
 #' High-Dimensional Bayesian Change Point Detection (Mean shift version)
 #'
 #' @param X A numeric matrix or data.frame of shape n x p.
-#' @param rho Scale parameter for interval generation (Default: 1 / sqrt(2)). Must be strictly between 0 and 1.
-#' @param m_min Minimum search interval length (Default: ceiling(8 * log(max(n, p))) + 1).
+#' @param beta Scale parameter for interval generation (Default: 1 / sqrt(2)). Must be strictly between 0 and 1.
+#' @param m_min Minimum search interval length (Default: 30).
 #' @param FPR_0 Target False Positive Rate (Default: 0.05).
 #' @param C_cp Threshold for change point detection (Default: log(10)).
 #' @param N_min Initial number of simulations for alpha calibration (Default: 150).
@@ -31,8 +31,8 @@
 #' print(result)
 #' }
 mxPBF_mean <- function(X,
-                       rho = 1/sqrt(2),
-                       m_min = ceiling(8 * log(max(n, p))) + 1,
+                       beta = 1/sqrt(2),
+                       m_min = 30,
                        FPR_0 = 0.05,
                        C_cp = log(10),
                        N_min = 150,
@@ -59,8 +59,8 @@ mxPBF_mean <- function(X,
   n <- nrow(X)
 
   # 2. Hyperparameter Range Validation
-  if (rho <= 0 || rho >= 1) {
-    stop("Error: 'rho' must be strictly between 0 and 1 (e.g., 1/sqrt(2) or 0.5).")
+  if (beta <= 0 || beta >= 1) {
+    stop("Error: 'beta' must be strictly between 0 and 1 (e.g., 1/sqrt(2) or 0.5).")
   }
 
   if (m_min < 2 || m_min >= n) {
@@ -89,7 +89,7 @@ mxPBF_mean <- function(X,
 
   result <- main_mean(
     X = X,
-    rho = as.numeric(rho),
+    beta = as.numeric(beta),
     m_min = as.numeric(m_min),
     FPR_0 = as.numeric(FPR_0),
     C_cp = as.numeric(C_cp),

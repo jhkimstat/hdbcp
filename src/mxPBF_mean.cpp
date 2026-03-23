@@ -10,8 +10,8 @@ using namespace arma;
 
 // [[Rcpp::export]]
 arma::vec compute_mxPBF_mean(const arma::mat& S, const arma::mat& Q,
-                                  int s, int e, double alpha, int n, int p,
-                                  double trunc) {
+                             int s, int e, double alpha, int n, int p,
+                             double trunc) {
   int n_I = e - s;
   double gamma = std::pow(std::max(n, p), -alpha);
   double const_term = 0.5 * std::log(gamma / (1.0 + gamma));

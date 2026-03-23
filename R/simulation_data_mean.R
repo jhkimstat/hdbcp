@@ -1,4 +1,4 @@
-#' Simulation data generating function for High-Dimensional Bayesian Change Point Detection
+#' Simulation data generating function for High-Dimensional Mean Bayesian Change Point Detection
 #'
 #' @param n The number of observations (time length). (Default: 500).
 #' @param p The dimension of the matrix (Default: 500).
@@ -40,17 +40,16 @@ generate_mean_data <- function(n = 500, p = 500, T_cp = 10, C_prop = 0.1,
 
   k <- 1:T_cp
   eta_inner <- eta_init - k + 1 + k * delta_n
-
   eta <- c(1, eta_inner, n + 1)
 
   # Generate covariance matrix
   U <- stats::runif(p, min = -2, max = 2)
   sigma_vec <- 2^U
+  sd_vec <- sqrt(sigma_vec)
 
   if (rho == 0) {
     Sigma <- diag(sigma_vec)
   } else {
-    sd_vec <- sqrt(sigma_vec)
     dist_mat <- abs(outer(1:p, 1:p, "-"))
     corr_mat <- rho^dist_mat
     Sigma <- corr_mat * outer(sd_vec, sd_vec, "*")

@@ -1,5 +1,6 @@
 #include <RcppArmadillo.h>
 #include <cmath>
+#include "intervals.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -7,21 +8,21 @@ using namespace Rcpp;
 using namespace arma;
 
 // [[Rcpp::export]]
-arma::umat generate_seeded_intervals(int n, double rho, double m_min) {
-  int k_min = std::floor(1.0 + std::log(n / m_min) / std::log(1.0 / rho));
+arma::umat generate_seeded_intervals(int n, double beta, double m_min) {
+  int k_min = std::floor(1.0 + std::log(n / m_min) / std::log(1.0 / beta));
 
   // Number of total intervals
   int total_intervals = 0;
   for (int k = 1; k <= k_min; ++k) {
-    total_intervals += 2 * std::ceil(std::pow(1.0 / rho, k - 1)) - 1;
+    total_intervals += 2 * std::ceil(std::pow(1.0 / beta, k - 1)) - 1;
   }
 
   arma::umat seeded(total_intervals, 3);
   int count = 0;
 
   for (int k = 1; k <= k_min; ++k) {
-    int nu_k = 2 * std::ceil(std::pow(1.0 / rho, k - 1)) - 1;
-    double omega_k = n * std::pow(rho, k - 1);
+    int nu_k = 2 * std::ceil(std::pow(1.0 / beta, k - 1)) - 1;
+    double omega_k = n * std::pow(beta, k - 1);
 
     if (nu_k == 1) {
       seeded(count, 0) = 0;

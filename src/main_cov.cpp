@@ -3,9 +3,8 @@
 #include <vector>
 #include <algorithm>
 #include "intervals.h"
-#include "utils.h"
-#include "mxPBF_mean.h"
-#include "calibration_mean.h"
+#include "mxPBF_cov.h"
+#include "calibration_cov.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -46,10 +45,11 @@ struct CP_Result {
 };
 
 // [[Rcpp::export]]
-List main_mean(const arma::mat& X, double beta, double m_min,
-                          double FPR_0, double C_cp, int N_min, int N_batch,
-                          int N_max, double C_conv, double trunc,
-                          int n_parallel = 1) {
+List main_cov(const arma::mat& X, double beta, double m_min,
+              double FPR_0, double C_cp, int N_min, int N_batch,
+              int N_max, double C_conv, double trunc,
+              double b_I, double b_L, double b_R, double a0,
+              int n_parallel = 1) {
 
   int n = X.n_rows;
   int p = X.n_cols;
@@ -60,14 +60,10 @@ List main_mean(const arma::mat& X, double beta, double m_min,
   Sigma.diag() += 1e-6;
   arma::mat L = arma::chol(Sigma);
 
-  // Precompute cumsums
+  // Seeded intervals
   arma::umat intervals = generate_seeded_intervals(n, beta, m_min);
   int num_intervals = intervals.n_rows;
   int k_min = intervals(num_intervals - 1, 2);
-
-  arma::mat S(n + 1, p, arma::fill::zeros);
-  arma::mat Q(n + 1, p, arma::fill::zeros);
-  precompute_cumsums(X, n, p, S, Q);
 
   // Define a latent vector indicating active intervals
   arma::uvec active(num_intervals, arma::fill::ones);
@@ -87,7 +83,8 @@ List main_mean(const arma::mat& X, double beta, double m_min,
         int s = intervals(i, 0);
         int e = intervals(i, 1);
 
-        arma::vec res = compute_mxPBF_mean(S, Q, s, e, 0.0, n, p, trunc);
+        arma::vec res = compute_mxPBF_cov(X, s, e, 0.0, trunc,
+                                      b_I, b_L, b_R, a0);
 
         if (res[0] > C_cp) {
           #pragma omp critical
@@ -105,8 +102,9 @@ List main_mean(const arma::mat& X, double beta, double m_min,
 
     // Calibrate alpha
     int omega_k = candidates[0].e - candidates[0].s;
-    List calib_res = calibrate_alpha_mean(X_bar, L, omega_k, FPR_0, C_cp,
-                                          N_min, N_batch, N_max, C_conv, n, p, trunc);
+    List calib_res = calibrate_alpha_cov(X_bar, L, omega_k, FPR_0, C_cp,
+                                         N_min, N_batch, N_max, C_conv, n, p, trunc,
+                                         b_I, b_L, b_R, a0);
     double alpha_k = calib_res["alpha_hat"];
 
     double gamma_k = std::pow(std::max(n, p), -alpha_k);
@@ -153,7 +151,6 @@ List main_mean(const arma::mat& X, double beta, double m_min,
     out_s(i)      = final_results[i].s + 1;
     out_e(i)      = final_results[i].e + 1;
   }
-
 
   return DataFrame::create(Named("change_point") = out_cps,
                            Named("interval_start") = out_s,

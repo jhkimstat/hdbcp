@@ -3,6 +3,6 @@
 
 #include <RcppArmadillo.h>
 
-arma::umat generate_seeded_intervals(int n, double rho, double m_min);
+arma::umat generate_seeded_intervals(int n, double beta, double m_min);
 
 #endif
