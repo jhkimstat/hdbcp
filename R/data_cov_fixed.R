@@ -5,7 +5,7 @@
 #' @param T_cp The number of true change-points to generate (Default: 10).
 #' @param C_A The proportion of active off-diagonal dimensions where the covariance changes occur (Default: 0.1).
 #' @param delta_n The minimum spacing condition between consecutive change-points. It should be less than or equal to \eqn{\lfloor n / (T_{cp} + 1) \rfloor} (Default: 20).
-#' @param C_S A constant controlling the base signal strength. (Default: \code{sqrt(10)}).
+#' @param C_S A constant controlling the base signal strength. (Default: 3).
 #' @param sigma_type The base covariance structure. Either \code{"sparse"} or \code{"dense"}. Default is \code{"sparse"}.
 #'
 #' @return A list containing the following components:
@@ -32,7 +32,7 @@
 #' min_eig <- min(eigen(sim_data$Sigma_list[[6]], symmetric = TRUE, only.values = TRUE)$values)
 #' print(min_eig > 0) # Should be TRUE
 generate_cov_data_fixed <- function(n = 500, p = 500, T_cp = 5, C_A = 0.01,
-                                   delta_n = 20, C_S = 1.0,
+                                   delta_n = 20, C_S = 3,
                                    sigma_type = c("sparse", "dense")) {
 
   sigma_type <- match.arg(sigma_type)
