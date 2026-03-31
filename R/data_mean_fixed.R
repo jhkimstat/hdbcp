@@ -59,11 +59,11 @@ generate_mean_data_fixed <- function(n = 500, p = 500, T_cp = 5, C_A = 0.1,
   prob <- if (omega_type == "sparse") 0.01 else 0.40
   Omega <- matrix(0, p, p)
 
-  upper_idx <- which(upper.tri(Omega))
-  selected_idx <- sample(upper_idx, size = floor((p^2) * prob / 2))
+  lower_idx <- which(lower.tri(Omega, diag = TRUE))
+  selected_idx <- sample(lower_idx, size = floor(length(lower_idx) * prob))
 
   Omega[selected_idx] <- 0.3
-  Omega <- Omega + t(Omega) # Symmetrize
+  Omega[upper.tri(Omega)] <- t(Omega)[upper.tri(Omega)] # Symmetrize
 
   # Positive Definite Correction
   eig_vals <- eigen(Omega, symmetric = TRUE, only.values = TRUE)$values
@@ -75,21 +75,19 @@ generate_mean_data_fixed <- function(n = 500, p = 500, T_cp = 5, C_A = 0.1,
 
   Sigma <- solve(Omega)
 
-  # Active Coordinate Selection (A)
-  p_A <- floor(p * C_A)
-  A <- sample(1:p, size = p_A, replace = FALSE)
-
   # Mean Structure Construction
   Mu <- matrix(0, nrow = n, ncol = p)
-  mu_current <- rep(0, p) # Initializes mu^(0) = 0
+  mu_current <- rep(0, p)
+  p_A <- floor(p * C_A)
 
   for (t in 0:T_cp) {
     start_idx <- eta[t + 1]
     end_idx <- eta[t + 2] - 1
 
     if (t > 0) {
+      A_current <- sample(1:p, size = p_A, replace = FALSE)
       xi <- rbinom(p_A, size = 1, prob = 0.5)
-      mu_current[A] <- mu_current[A] + C_S * (1 - 2 * xi)
+      mu_current[A_current] <- mu_current[A_current] + C_S * (1 - 2 * xi)
     }
 
     Mu[start_idx:end_idx, ] <- matrix(rep(mu_current, end_idx - start_idx + 1),

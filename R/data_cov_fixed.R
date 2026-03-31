@@ -52,10 +52,9 @@ generate_cov_data_fixed <- function(n = 500, p = 500, T_cp = 5, C_A = 0.01,
   if (sigma_type == "sparse") {
     Delta1 <- matrix(0, p, p)
     lower_idx <- which(lower.tri(Delta1, diag = FALSE))
-    m_base <- floor(length(lower_idx) * 0.05)
 
-    sel_idx <- sample(lower_idx, m_base)
-    Delta1[sel_idx] <- 0.5
+    selected_idx <- sample(lower_idx, floor(length(lower_idx) * 0.05))
+    Delta1[selected_idx] <- 0.5
     Delta1 <- Delta1 + t(Delta1) # Symmetrize
 
     min_eig_D1 <- min(eigen(Delta1, symmetric = TRUE, only.values = TRUE)$values)
@@ -82,15 +81,14 @@ generate_cov_data_fixed <- function(n = 500, p = 500, T_cp = 5, C_A = 0.01,
   Sigma_list <- vector("list", T_cp + 1)
   Sigma_list[[1]] <- Sigma_base
 
-  L_entries <- p * (p - 1) / 2
-  m_sig <- floor(L_entries * C_A)
   lower_idx <- which(lower.tri(matrix(0, p, p), diag = TRUE))
+  m_A <- floor(length(lower_idx) * C_A)
 
   for (t in 1:T_cp) {
     U <- matrix(0, p, p)
-    if (m_sig > 0) {
-      sel_idx <- sample(lower_idx, m_sig)
-      U[sel_idx] <- runif(m_sig, 0, C_S)
+    if (m_A > 0) {
+      selected_idx <- sample(lower_idx, m_A)
+      U[selected_idx] <- runif(m_A, 0, C_S)
       U[upper.tri(U)] <- t(U)[upper.tri(U)]
     }
 
