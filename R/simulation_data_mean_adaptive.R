@@ -1,11 +1,11 @@
-#' Simulation data generating function for High-Dimensional Mean Bayesian Change Point Detection
+#' Simulation data generating function for High-Dimensional Mean Bayesian Change Point Detection (Adaptive Signal Version)
 #'
 #' @param n The number of observations (time length). (Default: 500).
 #' @param p The dimension of the matrix (Default: 500).
 #' @param T_cp The number of true change-points to generate (Default: 10).
-#' @param C_prop The proportion of active dimensions where the mean changes occur (Default: 0.1).
+#' @param C_A The proportion of active dimensions where the mean changes occur (Default: 0.1).
 #' @param delta_n The minimum spacing condition between consecutive change-points. It should be less than or equal to \eqn{\lfloor n / (T_{cp} + 1) \rfloor} (Default: 20).
-#' @param signal A constant controlling the base signal strength. (Default: \code{sqrt(10)}).
+#' @param C_S A constant controlling the base signal strength. (Default: \code{sqrt(10)}).
 #' @param rho The spatial correlation parameter between -1 and 1. If 0, the covariance matrix is diagonal (Default: 0).
 #' @param vanishing If \code{TRUE}, applies the vanishing signals setting where jump sizes decrease as the number of active coordinates increases (Default: \code{FALSE}).
 #'
@@ -13,7 +13,6 @@
 #' \describe{
 #'   \item{X}{An \code{n} by \code{p} numeric matrix representing the generated multivariate time series data.}
 #'   \item{eta}{A numeric vector containing the true locations of the change-points.}
-#'   \item{A}{An integer vector indicating the indices of the active coordinates.}
 #'   \item{Sigma}{A \code{p} by \code{p} numeric matrix representing the true covariance matrix used for data generation.}
 #' }
 #'
@@ -24,18 +23,21 @@
 #' @examples
 #' set.seed(2026)
 #' # 1. Base Process
-#' dat_base <- generate_mean_data(n = 300, p = 100, T_cp = 5)
+#' dat_base <- generate_mean_data_adaptive(n = 300, p = 100, T_cp = 5)
 #'
 #' # 2. Spatial Correlation
-#' dat_spatial <- generate_mean_data(n = 300, p = 100, T_cp = 5, rho = 0.6)
+#' dat_spatial <- generate_mean_data_adaptive(n = 300, p = 100, T_cp = 5, rho = 0.6)
 #'
 #' # 3. Vanishing Signals
-#' dat_vanish <- generate_mean_data(n = 300, p = 100, T_cp = 5, vanishing = TRUE)
-generate_mean_data <- function(n = 500, p = 500, T_cp = 10, C_prop = 0.1,
-                              delta_n = 20, signal = sqrt(10), rho = 0, vanishing = FALSE) {
+#' dat_vanish <- generate_mean_data_adaptive(n = 300, p = 100, T_cp = 5, vanishing = TRUE)
+generate_mean_data_adaptive <- function(n = 500, p = 500, T_cp = 10, C_A = 0.1,
+                              delta_n = 20, C_S = sqrt(10), rho = 0, vanishing = FALSE) {
 
   # Draw change point locations
   S_free <- n - (T_cp + 1) * delta_n
+  if (S_free < 0) {
+    stop("Invalid parameters: The minimum spacing condition (delta_n) and number of change points (T_cp) exceed the data length (n).")
+  }
   eta_init <- sort(sample(1:(S_free + T_cp), T_cp))
 
   k <- 1:T_cp
@@ -56,7 +58,7 @@ generate_mean_data <- function(n = 500, p = 500, T_cp = 10, C_prop = 0.1,
   }
 
   # Select active coordinates
-  p0 <- floor(C_prop * p)
+  p0 <- floor(C_A * p)
   A <- sample(1:p, p0)
 
   # Generate mean vector and data
@@ -74,7 +76,7 @@ generate_mean_data <- function(n = 500, p = 500, T_cp = 10, C_prop = 0.1,
 
       min_dist <- min(eta[t+1] - eta[t], eta[t] - eta[t-1])
 
-      jump <- (signal * sign_mult * sigma_vec) / sqrt(min_dist)
+      jump <- (C_S * sign_mult * sigma_vec) / sqrt(min_dist)
 
       if (vanishing) {
         jump <- jump / sqrt(p0)
@@ -94,7 +96,6 @@ generate_mean_data <- function(n = 500, p = 500, T_cp = 10, C_prop = 0.1,
   return(list(
     X = X,
     eta = eta_inner,
-    A = A,
     Sigma = Sigma
   ))
 }
