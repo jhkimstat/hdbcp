@@ -1,12 +1,12 @@
-#' Simulation data generating function for High-Dimensional Bayesian Covariance Change Point Detection (Fixed Signal Version)
+#' Simulation data generating function for High-Dimensional Bayesian Covariance Change Point Detection
 #'
 #' @param n The number of observations (time length). (Default: 500).
 #' @param p The dimension of the matrix (Default: 500).
-#' @param T_cp The number of true change-points to generate (Default: 10).
-#' @param C_A The proportion of active off-diagonal dimensions where the covariance changes occur (Default: 0.1).
+#' @param T_cp The number of true change-points to generate (Default: 5).
 #' @param delta_n The minimum spacing condition between consecutive change-points. It should be less than or equal to \eqn{\lfloor n / (T_{cp} + 1) \rfloor} (Default: 20).
-#' @param C_S A constant controlling the base signal strength. (Default: 3).
+#' @param C_S A constant controlling the magnitude of the signals. (Default: 3).
 #' @param sigma_type The base covariance structure. Either \code{"sparse"} or \code{"dense"}. Default is \code{"sparse"}.
+#' @param signal_type The type of covariance change signals. Either \code{"rare"} (only 5 off-diagonal entries change) or \code{"many"} (dense rank-1 update). Default is \code{"rare"}.
 #'
 #' @return A list containing the following components:
 #' \describe{
@@ -19,25 +19,21 @@
 #' @export
 #'
 #' @examples
-#' # Generate data with a sparse base covariance matrix and 5 change points
+#' # Generate data with rare signals (Sparse base, Rare changes)
 #' set.seed(42)
-#' sim_data <- generate_cov_data_fixed(
-#'   n = 500, p = 200, T_cp = 5, C_A = 0.05, delta_n = 20, C_S = 1.0, sigma_type = "sparse"
-#' )
+#' sim_rare <- generate_cov_data_fixed(p = 200, C_S = 1.0, sigma_type = "sparse", signal_type = "rare")
 #'
-#' # True change point locations
-#' print(sim_data$eta)
-#'
-#' # Verify positive definiteness of the covariance matrix in the last segment
-#' min_eig <- min(eigen(sim_data$Sigma_list[[6]], symmetric = TRUE, only.values = TRUE)$values)
-#' print(min_eig > 0) # Should be TRUE
-generate_cov_data_fixed <- function(n = 500, p = 500, T_cp = 5, C_A = 0.01,
-                                   delta_n = 20, C_S = 3,
-                                   sigma_type = c("sparse", "dense")) {
+#' # Generate data with many signals (Dense base, Many changes)
+#' sim_many <- generate_cov_data_fixed(p = 200, C_S = 1.0, sigma_type = "dense", signal_type = "many")
+generate_cov_data_fixed <- function(n = 500, p = 500, T_cp = 5,
+                                    delta_n = 20, C_S = 3,
+                                    sigma_type = c("sparse", "dense"),
+                                    signal_type = c("rare", "many")) {
 
   sigma_type <- match.arg(sigma_type)
+  signal_type <- match.arg(signal_type)
 
-  # Change Point Location Generation
+  # 1. Change Point Location Generation
   S_free <- n - (T_cp + 1) * delta_n
   if (S_free < 0) {
     stop("Invalid parameters: The minimum spacing condition (delta_n) and number of change points (T_cp) exceed the data length (n).")
@@ -48,7 +44,7 @@ generate_cov_data_fixed <- function(n = 500, p = 500, T_cp = 5, C_A = 0.01,
   eta_inner <- eta_init - k + 1 + k * delta_n
   eta <- c(1, eta_inner, n + 1)
 
-  # Base Covariance Matrix Construction
+  # 2. Base Covariance Matrix Construction
   if (sigma_type == "sparse") {
     Delta1 <- matrix(0, p, p)
     lower_idx <- which(lower.tri(Delta1, diag = FALSE))
@@ -77,26 +73,30 @@ generate_cov_data_fixed <- function(n = 500, p = 500, T_cp = 5, C_A = 0.01,
     Sigma_base <- O_mat %*% Delta %*% O_mat
   }
 
-  # Recursive Signal Construction
+  # 3. Recursive Signal Construction
   Sigma_list <- vector("list", T_cp + 1)
   Sigma_list[[1]] <- Sigma_base
 
-  lower_idx <- which(lower.tri(matrix(0, p, p), diag = TRUE))
-  m_A <- floor(length(lower_idx) * C_A)
+  lower_idx_no_diag <- which(lower.tri(matrix(0, p, p), diag = FALSE))
 
   for (t in 1:T_cp) {
     U <- matrix(0, p, p)
-    if (m_A > 0) {
-      selected_idx <- sample(lower_idx, m_A)
-      U[selected_idx] <- runif(m_A, 0, C_S)
-      U[upper.tri(U)] <- t(U)[upper.tri(U)]
-    }
 
-    xi <- rbinom(1, size = 1, prob = 0.5)
-    Sigma_list[[t + 1]] <- Sigma_list[[t]] + (1 - 2 * xi) * U
+    if (signal_type == "rare") {
+      n_rare <- 5
+      selected_idx <- sample(lower_idx_no_diag, n_rare)
+
+      U[selected_idx] <- runif(n_rare, 0, C_S)
+      U <- U + t(U)
+
+    } else {
+      u_vec <- runif(p, 0, sqrt(C_S))
+      U <- u_vec %*% t(u_vec)
+    }
+    Sigma_list[[t + 1]] <- Sigma_list[[t]] + U
   }
 
-  # Global Positive Definite Correction
+  # 4. Global Positive Definite Correction
   min_eigs <- sapply(Sigma_list, function(S) {
     min(eigen(S, symmetric = TRUE, only.values = TRUE)$values)
   })
@@ -107,7 +107,7 @@ generate_cov_data_fixed <- function(n = 500, p = 500, T_cp = 5, C_A = 0.01,
     Sigma_list <- lapply(Sigma_list, function(S) S + correction)
   }
 
-  # Data Generation
+  # 5. Data Generation
   X <- matrix(0, nrow = n, ncol = p)
 
   for (t in 0:T_cp) {

@@ -1,6 +1,26 @@
-.Rproj.user
+# R History and Workspace
 .Rhistory
 .RData
-.httr-oauth
+.Ruserdata
+
+# IDE and Editor Settings
+.Rproj.user/
+.antigravity/
+
+# Quarto
+.quarto/
+
+# OS Generated Files
 .DS_Store
-.quarto
+
+# Authentication
+.httr-oauth
+
+# Compiled C/C++ Files
+*.o
+*.so
+*.dll
+
+# Simulation & HPC Outputs
+simulation/results/
+docs/

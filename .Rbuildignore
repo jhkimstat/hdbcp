@@ -1,2 +1,11 @@
-^hdbcp2\.Rproj$
+^.*\.Rproj$
 ^\.Rproj\.user$
+^\.antigravity$
+^\.gitignore$
+^\.Rhistory$
+^\.RData$
+^\.DS_Store$
+^docs$
+^simulation$
+^README\.md$
+^\.quarto$
